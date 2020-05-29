@@ -168,7 +168,7 @@ def infer_on_stream(args, client):
                     no_person_time = 0
                     person_flag = False
                     people_on_screen = 0
-                    counter = 0
+                    duration = 0
 
             ## TODO: Calculate and send relevant information on ###
             ## current_count, total_count and duration to the MQTT server ###
