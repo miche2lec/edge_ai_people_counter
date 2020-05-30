@@ -118,6 +118,8 @@ def infer_on_stream(args, client):
     cap.open(args.input)
     
     # Create a video writer for the output video
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    num_frames = 0
     duration = 0
     person_flag = False
     total_people_count = 0
@@ -157,17 +159,22 @@ def infer_on_stream(args, client):
                 frame = draw_outputs(obj[3:], frame, int(cap.get(3)), int(cap.get(4)))
                 if not person_flag:
                     person_flag = True
-                    start_time = time.time()
                     people_on_screen += 1
                     total_people_count += people_on_screen
-                cur_time = time.time()
-                duration = int(cur_time-start_time)
+                num_frames += 1
+                no_person_time = 0
             else:
-                no_person_time += 1
-                if no_person_time > 10:
-                    no_person_time = 0
+                if person_flag:
+                    no_person_time += 1
+                if no_person_time > 3*int(fps):
                     person_flag = False
                     people_on_screen = 0
+                    duration = num_frames/fps
+                    no_person_time = 0
+                    num_frames = 0
+                    client.publish('person/duration',
+                                   payload=json.dumps({'duration': duration}),
+                                   qos=0, retain=False)
                     duration = 0
 
             ## TODO: Calculate and send relevant information on ###
@@ -178,10 +185,7 @@ def infer_on_stream(args, client):
                            payload=json.dumps({
                                'count': people_on_screen, 'total': total_people_count}),
                            qos=0, retain=False)
-            if person_flag:
-                client.publish('person/duration',
-                                   payload=json.dumps({'duration': duration}),
-                                   qos=0, retain=False)
+                
 
                 
 
